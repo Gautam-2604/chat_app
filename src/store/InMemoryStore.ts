@@ -1,60 +1,67 @@
-import { Store, Chat, UserId } from "./Store"
+import { Chat, Store, UserId } from "./Store";
 let globalChatId = 0;
 
-export interface Room{
+export interface Room {
     roomId: string;
     chats: Chat[]
 }
 
+export class InMemoryStore implements Store {
+    private store: Map<string, Room>;
 
-export class InMemoryStore implements Store{
-    private store : Map<string, Room>;
-    constructor(){
-        this.store = new Map<string, Room>
+    constructor() {
+        this.store = new Map<string, Room>()
     }
-    initRoom(roomId: string){
+
+    initRoom(roomId: string) {
         this.store.set(roomId, {
             roomId,
-            chats:[]
+            chats: []
         });
     }
-    //last 50 chats => limit=50 offset=0
-    //limits = 50, offset = 50
-    getChats(roomId : string, limit: number, offset: number){
-        const room = this.store.get(roomId)
-        if(!room){
+
+    getChats(roomId: string, limit: number, offset: number) {
+        const room = this.store.get(roomId);
+        if (!room) {
             return []
         }
-        else{
-            return room.chats.reverse().slice(0, offset).slice(-1 * limit)
-        }
+        return room.chats.reverse().slice(0, offset).slice(-1 * limit);
     }
-    addChat(userId : UserId , name:string,message:string,roomId : string){
-        const room = this.store.get(roomId)
-        if(!room){
-            return []
+
+    addChat(userId: UserId, name: string, roomId: string, message: string) {
+        if (!this.store.get(roomId)) {
+            this.initRoom(roomId);
         }
-        else{
-            room.chats.push({
-                id: (globalChatId++).toString(),
-                userId,
-                name,
-                message,
-                upvotes:[]
-            })
+        const room = this.store.get(roomId);
+        if (!room) {
+            return;
         }
+        const chat = {
+            id: (globalChatId++).toString(),
+            userId,
+            name,
+            message,
+            upvotes: []
+        }
+        room.chats.push(chat)
+        return chat;
     }
-    upvote(userId: UserId,roomId : string, chatId : string){
-        const room = this.store.get(roomId)
-        if(!room){
-            return []
+
+    upvote(userId: UserId, roomId: string, chatId: string) {
+        const room = this.store.get(roomId);
+        if (!room) {
+            return 
         }
-        //Todo: Make it faster
-        else{
-            const chat = room.chats.find(({id})=>id===chatId)
-            if(chat){
-                chat.upvotes.push(userId)
+        // Todo: Make this faster
+        const chat = room.chats.find(({id}) => id == chatId);
+
+        if (chat) {
+            if (chat.upvotes.find(x => x === userId)) {
+                return chat;
             }
+            chat.upvotes.push(userId);
         }
+        return chat;
     }
+
 }
